@@ -1,0 +1,58 @@
+spring:
+  datasource:
+    # useSSL=false : connexion en réseau local uniquement (Pi → NAS), SSL non justifié
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:dmarc_dashboard}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+
+pushbullet:
+  api-key: ${PUSHBULLET_API_KEY:}
+
+dmarc:
+  source:
+    # "folder" = lire les fichiers déposés manuellement (mode dev)
+    # "mail"   = récupérer depuis la boîte IMAP (mode prod)
+    mode: ${DMARC_SOURCE_MODE:folder}
+    folder:
+      path: ${DMARC_FOLDER_PATH:./dmarc-reports}
+  mail:
+    host: ${MAIL_HOST:imap.example.com}
+    port: ${MAIL_PORT:993}
+    username: ${MAIL_USERNAME:dmarc@example.com}
+    password: ${MAIL_PASSWORD:}
+    ssl: ${MAIL_SSL:true}
+    folder: ${MAIL_FOLDER:INBOX}
+    processed-folder: ${MAIL_PROCESSED_FOLDER:Processed}
+  scheduler:
+    # Toutes les 6 heures par défaut
+    cron: ${SCHEDULER_CRON:0 0 */6 * * *}
+    weekly-cron: ${SCHEDULER_WEEKLY_CRON:0 0 17 * * FRI}
+    enabled: ${SCHEDULER_ENABLED:true}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:https://dmarc-dashboard-app.kaminski.lu,http://localhost:4200}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:86400000}
+
+logging:
+  level:
+    lu.kaminski.dmarc: INFO
+    org.springframework.mail: DEBUG
