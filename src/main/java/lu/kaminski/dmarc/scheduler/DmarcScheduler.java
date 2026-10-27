@@ -30,7 +30,7 @@ public class DmarcScheduler {
     private final ReportService reportService;
     private final NotifService notifService;
 
-    @Scheduled(cron = "${dmarc.scheduler.cron}")
+    @Scheduled(cron = "${dmarc.scheduler.check-mailbox}")
     public void fetchAndProcessReports() {
         log.info("=== Début de la collecte DMARC ===");
 
@@ -86,7 +86,7 @@ public class DmarcScheduler {
         return new FetchResult(xmlReports.size(), imported, skipped, errors);
     }
 
-    @Scheduled(cron = "${dmarc.scheduler.weekly-cron:0 0 17 * * FRI}")
+    @Scheduled(cron = "${dmarc.scheduler.weekly-report}")
     public void sendWeeklySummary() {
         long count = reportService.countReportsThisWeek();
         notifService.sendPushBulletNotif(

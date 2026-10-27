@@ -16,7 +16,7 @@ public class BlacklistScheduler {
     private final BlacklistService blacklistService;
 
     /** Vérification quotidienne à 2h du matin */
-    @Scheduled(cron = "${dmarc.blacklist.cron:0 0 2 * * *}")
+    @Scheduled(cron = "${dmarc.scheduler.blacklist}")
     public void checkBlacklists() {
         log.info("Vérification blacklists planifiée déclenchée");
         blacklistService.checkAll();

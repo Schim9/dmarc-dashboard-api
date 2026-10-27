@@ -3,7 +3,7 @@
 Backend Spring Boot du projet DMARC Dashboard.
 
 **Repo GitHub** : https://github.com/Schim9/dmarc-dashboard-api
-**Déploiement** : Pi Apps (appsPi, 192.168.0.11) — voir skill `/info-pi-apps`
+**Déploiement** : voir skill `/info-pi-apps`
 **Langue** : Communiquer en français avec l'utilisateur.
 
 ---
@@ -37,6 +37,7 @@ Ces variables **n'ont pas de valeur par défaut** et doivent être définies :
 | `DB_USERNAME` | Utilisateur MySQL |
 | `DB_PASSWORD` | Mot de passe MySQL |
 | `ADMIN_PASSWORD` | Mot de passe admin interface |
+| `JWT_SECRET` | Clé secrète de signature des tokens JWT |
 
 Variables optionnelles (avec défauts) :
 
@@ -54,6 +55,11 @@ Variables optionnelles (avec défauts) :
 | `MAIL_USERNAME` | `dmarc@example.com` | Login IMAP |
 | `MAIL_PASSWORD` | *(vide)* | Mot de passe IMAP |
 | `SCHEDULER_ENABLED` | `true` | Active/désactive les schedulers |
+| `SCHEDULER_CHECK_MAILBOX` | `0 0 */6 * * *` | Cron collecte DMARC (toutes les 6h) |
+| `SCHEDULER_WEEKLY_REPORT` | `0 0 17 * * FRI` | Cron résumé hebdomadaire (vendredi 17h) |
+| `SCHEDULER_BLACKLIST` | `0 0 2 * * *` | Cron vérification blacklist (2h du matin) |
+| `SCHEDULER_DNS_CHECK` | `0 0 3 * * *` | Cron vérification DNS (3h du matin) |
+| `JWT_EXPIRATION` | `86400000` | Durée de validité du token JWT (ms) |
 
 ## Architecture
 
@@ -78,18 +84,22 @@ config/         SecurityConfig, CorsConfig, PushBulletProperties
 
 ## Authentification
 
-Session HTTP + cookie (pas de JWT). Un seul utilisateur admin en mémoire (`InMemoryUserDetailsManager`).
-Le CSRF est désactivé — à réactiver si l'appli devient publique ou multi-utilisateurs.
+JWT stateless (`SessionCreationPolicy.STATELESS`). Un seul utilisateur admin en mémoire (`InMemoryUserDetailsManager`). Le token JWT est signé avec `JWT_SECRET` et retourné au login ; le frontend le transmet via header `Authorization: Bearer <token>`.
+Le CSRF est désactivé (stateless par nature).
 
 ## Points de vigilance connus (à corriger)
 
-- **Threads manuels** dans `BlacklistController` et `DnsCheckController` (`new Thread(...)`) → à remplacer par `@Async`
-- **Aucun `@ControllerAdvice`** — les exceptions non catchées retournent un 500
-- **`InterventionStatus.valueOf()`** non protégé → erreur 400 si valeur invalide envoyée par le client
-- **Cache `IpResolverService`** illimité en mémoire (ConcurrentHashMap sans éviction)
-- **Aucune validation Bean Validation** (`@Valid`) sur les DTOs de requête
+- **`InterventionStatus.valueOf()`** non protégé → message d'erreur 400 expose le nom complet de l'enum Java
+- **`@Autowired` en injection par champ** dans `MailFetchService` — incohérence par rapport à l'injection constructeur utilisée partout ailleurs
+- **Sérialisation JSON brute (`TEXT`)** dans l'entité `DnsCheck` pour `dkimChecksJson` et `issuesJson` — pas de mapping objet, désérialisé manuellement
+- **N+1 dans `ReportService.getAllDomainStats()`** — lookup SPF réseau par domaine déclenché pour chaque domaine lors de l'agrégation
+- **`LocalDateTime.now()` sans timezone** dans `InterventionService` (ligne ~127) — comportement dépendant du fuseau du serveur
+- **Tests insuffisants** — un seul `contextLoads()`, aucun test métier
 
 ## Historique des décisions
 
 - **2026-10** : Suppression du mode démo (`dmarc.demo.mode`) — fonctionnalité retirée définitivement
 - **2026-10** : Revue sécurité pré-GitHub — credentials retirés de `application.yml`, `.gitignore` créé
+- **2026-10** : Migration session HTTP → JWT stateless (`SessionCreationPolicy.STATELESS`)
+- **2026-10** : Revue architecturale — threads manuels remplacés par `@Async`, `GlobalExceptionHandler` ajouté, cache `IpResolverService` limité (LRU 500 entrées), `@Valid` appliqué sur les DTOs principaux
+- **2026-10** : Refactoring schedulers — toutes les propriétés cron regroupées sous `dmarc.scheduler.*` ; variables d'environnement renommées (`SCHEDULER_CHECK_MAILBOX`, `SCHEDULER_WEEKLY_REPORT`, `SCHEDULER_BLACKLIST`, `SCHEDULER_DNS_CHECK`) ; correction des propriétés de test manquantes dans `DmarcDashboardApiApplicationTests`

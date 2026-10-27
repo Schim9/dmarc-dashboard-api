@@ -40,8 +40,10 @@ dmarc:
     processed-folder: ${MAIL_PROCESSED_FOLDER:Processed}
   scheduler:
     # Toutes les 6 heures par défaut
-    cron: ${SCHEDULER_CRON:0 0 */6 * * *}
-    weekly-cron: ${SCHEDULER_WEEKLY_CRON:0 0 17 * * FRI}
+    blacklist: ${SCHEDULER_BLACKLIST:0 0 2 * * *}
+    dns-check: ${SCHEDULER_DNS_CHECK:0 0 3 * * *}
+    weekly-report: ${SCHEDULER_WEEKLY_REPORT:0 0 17 * * FRI}
+    check-mailbox: ${SCHEDULER_CHECK_MAILBOX:0 0 */6 * * *}
     enabled: ${SCHEDULER_ENABLED:true}
   cors:
     allowed-origins: ${CORS_ORIGINS:https://dmarc-dashboard-app.kaminski.lu,http://localhost:4200}

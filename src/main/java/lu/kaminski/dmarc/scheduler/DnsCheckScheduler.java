@@ -16,7 +16,7 @@ public class DnsCheckScheduler {
     private final DnsCheckService dnsCheckService;
 
     /** Vérification quotidienne à 3h du matin */
-    @Scheduled(cron = "${dmarc.dns-check.cron:0 0 3 * * *}")
+    @Scheduled(cron = "${dmarc.scheduler.dns-check}")
     public void checkDns() {
         log.info("Vérification DNS planifiée déclenchée");
         dnsCheckService.checkAll();
